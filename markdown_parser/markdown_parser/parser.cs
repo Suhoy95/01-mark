@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -17,10 +18,18 @@ namespace markdown_parser
             string replacing = "";
             for (var i = 1; i < input.Length-1; i++)
             {
+                if (input[i] == '\\')
+                {
+                    output += input[++i];
+                    continue;
+                }
+
                 replacing = "";
                 replacing += tryReplaceTwiceUnderline(input, ref i);
                 replacing += tryReplaceOnesUnderline(input, i);
-                replacing += tryReplaceBackticks(input, i);
+                replacing += tryReplaceBackticks(input, ref i);
+                
+                
                 if (string.IsNullOrEmpty(replacing))
                     output += input[i];
                 else
@@ -30,11 +39,23 @@ namespace markdown_parser
             return output;
         }
 
-        private string tryReplaceBackticks(string input, int i)
+        private string tryReplaceBackticks(string input, ref int i)
         {
-            if (input[i] != '`')
-                return "";
-            return "<code>";
+            if (input[i] == '`')
+            {
+                string code = "<code>";
+                for (var j = i + 1; j < input.Length - 1; j++)
+                {
+                    if (input[j] == '`')
+                    {
+                        i = j;
+                        return code + "</code>";
+                    }
+
+                    code += input[j];
+                }
+            }
+            return "";
         }
 
         private string tryReplaceOnesUnderline(string input, int i)

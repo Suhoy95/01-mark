@@ -47,5 +47,30 @@ namespace markdown_parser
         {
             Assert.AreEqual("<strong> <em>Hello</em> </strong>", a.toParse("__ _Hello_ __"));
         }
+
+        [Test]
+        public static void replace_backticks()
+        {
+            Assert.AreEqual("<code>Hello</code>", a.toParse("`Hello`"));
+        }
+
+        [Test]
+        public static void ignore_underline_in_backticks()
+        {
+            Assert.AreEqual("<code> _Hello_ </code>", a.toParse("` _Hello_ `"));
+        }
+
+        [Test]
+        public static void ignore_underline_in_words()
+        {
+            Assert.AreEqual("Подчерки_внутри_текста__и__цифр_12_3", a.toParse("Подчерки_внутри_текста__и__цифр_12_3"));
+        }
+
+        [Test]
+        public static void ignore_backslash_character()
+        {
+            Assert.AreEqual("_Hello_", a.toParse("\\_Hello\\_"));
+        }
+
     }
 }
