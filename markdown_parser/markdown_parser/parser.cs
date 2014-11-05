@@ -18,7 +18,7 @@ namespace markdown_parser
             for (var i = 1; i < input.Length-1; i++)
             {
                 replacing = "";
-                replacing += tryReplaceTwiceUnderline(input, i);
+                replacing += tryReplaceTwiceUnderline(input, ref i);
                 replacing += tryReplaceOnesUnderline(input, i);
                 replacing += tryReplaceBackticks(input, i);
                 if (string.IsNullOrEmpty(replacing))
@@ -51,8 +51,23 @@ namespace markdown_parser
             return "";
         }
 
-        private string tryReplaceTwiceUnderline(string input, int i)
+        private string tryReplaceTwiceUnderline(string input, ref int i)
         {
+            if (string.IsNullOrWhiteSpace(input[i - 1].ToString()) && input[i] == '_' && input[i+1] == '_' )
+                for (var j = i + 1; j < input.Length - 1; j++)
+                    if (tryReplaceTwiceUnderline(input,ref j) == "</strong>")
+                    {
+                        i++;
+                        return "<strong>";
+                    }
+
+            if (input[i] == '_' && input[i+1] == '_' &&
+                String.IsNullOrWhiteSpace(input[i + 2].ToString()))
+            {
+                i++;
+                return "</strong>";
+            }
+                
             return "";
         }
     }
