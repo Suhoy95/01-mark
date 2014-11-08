@@ -11,11 +11,11 @@ namespace markdown_parser
     class Parser
     { 
 
-        public string toParse(string input)
+        public string Parse(string input)
         {
-            input = ' ' + input + ' ';
             string output = "";
-            string replacing = "";
+         
+            input = ' ' + input + ' ';            
             for (var i = 1; i < input.Length-1; i++)
             {
                 if (input[i] == '\\')
@@ -24,10 +24,11 @@ namespace markdown_parser
                     continue;
                 }
 
-                replacing = "";
+                string replacing = "";
                 replacing += tryReplaceTwiceUnderline(input, ref i);
                 replacing += tryReplaceOnesUnderline(input, i);
                 replacing += tryReplaceBackticks(input, ref i);
+                replacing += tryEscapeHTML(input, i);
                 
                 
                 if (string.IsNullOrEmpty(replacing))
@@ -37,6 +38,16 @@ namespace markdown_parser
             }
           
             return output;
+        }
+
+        private string tryEscapeHTML(string input, int i)
+        {
+            if (input[i] == '<')
+                return "&lt;";
+            if (input[i] == '>')
+                return "&gt;";
+
+            return "";
         }
 
         private string tryReplaceBackticks(string input, ref int i)
@@ -60,13 +71,13 @@ namespace markdown_parser
 
         private string tryReplaceOnesUnderline(string input, int i)
         {
-            if (string.IsNullOrWhiteSpace(input[i-1].ToString()) && input[i] == '_')
+            if (char.IsWhiteSpace(input[i-1]) && input[i] == '_')
                 for(var j = i+1; j < input.Length-1; j ++)
                     if(tryReplaceOnesUnderline(input, j) == "</em>")
                         return "<em>";
 
             if(input[i-1] != '_' && input[i] =='_' &&
-                String.IsNullOrWhiteSpace(input[i+1].ToString()))
+                char.IsWhiteSpace(input[i+1]))
                 return "</em>";
             
             return "";
@@ -74,7 +85,7 @@ namespace markdown_parser
 
         private string tryReplaceTwiceUnderline(string input, ref int i)
         {
-            if (string.IsNullOrWhiteSpace(input[i - 1].ToString()) && input[i] == '_' && input[i+1] == '_' )
+            if (char.IsWhiteSpace(input[i - 1]) && input[i] == '_' && input[i+1] == '_' )
                 for (var j = i + 1; j < input.Length - 1; j++)
                     if (tryReplaceTwiceUnderline(input,ref j) == "</strong>")
                     {
@@ -83,7 +94,7 @@ namespace markdown_parser
                     }
 
             if (input[i] == '_' && input[i+1] == '_' &&
-                String.IsNullOrWhiteSpace(input[i + 2].ToString()))
+                char.IsWhiteSpace(input[i + 2]))
             {
                 i++;
                 return "</strong>";
