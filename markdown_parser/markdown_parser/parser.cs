@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -9,86 +10,146 @@ using System.Threading.Tasks;
 namespace markdown_parser
 { 
     class Parser
-    { 
+    {
+        private enum tag{notag, em, p, strong, code};
 
-        public string toParse(string input)
+        private List< Tuple<tag, int> > tags;
+
+        public string Parse(string input)
         {
+            tags = new List<Tuple<tag, int>>();
+            List<string> output = new List<string>();
+         
             input = ' ' + input + ' ';
-            string output = "";
-            string replacing = "";
+            string text ="";
             for (var i = 1; i < input.Length-1; i++)
             {
                 if (input[i] == '\\')
                 {
-                    output += input[++i];
+                    text += parseChar(input[++i]);
                     continue;
                 }
 
-                replacing = "";
-                replacing += tryReplaceTwiceUnderline(input, ref i);
-                replacing += tryReplaceOnesUnderline(input, i);
-                replacing += tryReplaceBackticks(input, ref i);
-                
-                
-                if (string.IsNullOrEmpty(replacing))
-                    output += input[i];
+                tag nowTag = isTag(input, ref i);
+
+                if (nowTag == tag.notag)
+                    text += parseChar(input[i]);
                 else
-                    output += replacing;
-            }
-          
-            return output;
-        }
-
-        private string tryReplaceBackticks(string input, ref int i)
-        {
-            if (input[i] == '`')
-            {
-                string code = "<code>";
-                for (var j = i + 1; j < input.Length - 1; j++)
                 {
-                    if (input[j] == '`')
+                    output.Add(text);
+                    text = "";
+                    if (tags.Any(x => x.Item1 == nowTag))
                     {
-                        i = j;
-                        return code + "</code>";
+                        var j = tags.Count - 1;
+                        while(tags[j].Item1 != nowTag)
+                        {
+                            output[tags[j].Item2] += getMarkdownChar(tags[j].Item1);
+                            tags.RemoveAt(j);
+                            j--;
+                        }
+                        output[tags[j].Item2] += getOpenTag(nowTag);
+                        output[output.Count - 1] += getCloseTag(nowTag);
+                        tags.RemoveAt(j);
                     }
-
-                    code += input[j];
+                    else
+                    {
+                        tags.Add(new Tuple<tag, int>(nowTag, output.Count() - 1));
+                    }
                 }
             }
-            return "";
+
+            if (!string.IsNullOrEmpty(text))
+                output.Add(text);
+            for (var j = 0; j < tags.Count(); j++)
+                output[tags[j].Item2] += getMarkdownChar(tags[j].Item1);
+
+            string ans = "";
+            for (var i = 0; i < output.Count(); i++)
+                ans += output[i];
+            return ans;
         }
 
-        private string tryReplaceOnesUnderline(string input, int i)
+        private string parseChar(char p)
         {
-            if (string.IsNullOrWhiteSpace(input[i-1].ToString()) && input[i] == '_')
-                for(var j = i+1; j < input.Length-1; j ++)
-                    if(tryReplaceOnesUnderline(input, j) == "</em>")
-                        return "<em>";
+            if (p == '<')
+                return "&lt;";
+            if (p == '>')
+                return "&gt;";
 
-            if(input[i-1] != '_' && input[i] =='_' &&
-                String.IsNullOrWhiteSpace(input[i+1].ToString()))
-                return "</em>";
-            
-            return "";
+            return p.ToString();
         }
 
-        private string tryReplaceTwiceUnderline(string input, ref int i)
+        private tag isTag(string input, ref int i)
         {
-            if (string.IsNullOrWhiteSpace(input[i - 1].ToString()) && input[i] == '_' && input[i+1] == '_' )
-                for (var j = i + 1; j < input.Length - 1; j++)
-                    if (tryReplaceTwiceUnderline(input,ref j) == "</strong>")
-                    {
-                        i++;
-                        return "<strong>";
-                    }
+            if (input[i] == '`')
+                return tag.code;
 
-            if (input[i] == '_' && input[i+1] == '_' &&
-                String.IsNullOrWhiteSpace(input[i + 2].ToString()))
+            if (char.IsWhiteSpace(input[i - 1]) && input[i] == '_' && input[i+1] == '_' ||
+                input[i] == '_' && input[i+1] == '_' && char.IsWhiteSpace(input[i + 2]))
             {
                 i++;
-                return "</strong>";
+                return tag.strong;
             }
-                
+
+            if (char.IsWhiteSpace(input[i-1]) && input[i] == '_' ||
+                input[i-1] != '_' && input[i] =='_' && char.IsWhiteSpace(input[i+1]))
+                return tag.em;
+
+            if (input[i] == '\n')
+            {
+                var j = i+1;
+                while (char.IsWhiteSpace(input[j++])) { }
+
+                if(input[j] == '\n')
+                    return tag.p;
+            }
+
+            return tag.notag;
+        }
+
+        private string getOpenTag(tag a)
+        {
+            switch (a)
+            {
+                case tag.code:
+                    return "<code>";
+                case tag.em:
+                    return "<em>";
+                case tag.strong:
+                    return "<strong>";
+                case tag.p:
+                    return "<p>";
+            }
+            return "";
+        }
+        
+        private string getCloseTag(tag a)
+        {
+            switch (a)
+            {
+                case tag.code:
+                    return "</code>";
+                case tag.em:
+                    return "</em>";
+                case tag.strong:
+                    return "</strong>";
+                case tag.p:
+                    return "</p>";
+            }
+            return "";
+        }
+
+        private string getMarkdownChar(tag a)
+        {
+            switch (a)
+            {
+                case tag.code:
+                    return "`";
+                case tag.em:
+                    return "_";
+                case tag.strong:
+                    return "__";
+            }
             return "";
         }
     }
