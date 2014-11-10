@@ -10,6 +10,16 @@ namespace markdown_parser
     {
         static void Main(string[] args)
         {
+            string test = "\n             \n";
+            if (test[0] == '\n')
+            {
+                var j = 1;
+                while (test[j++] == ' ') { }
+
+                if (test[j-1] == '\n')
+                    Console.WriteLine("yes");
+            }
+            Console.Write("no");
         }
     }
 }

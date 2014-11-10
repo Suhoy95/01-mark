@@ -47,9 +47,20 @@ namespace markdown_parser
                             tags.RemoveAt(j);
                             j--;
                         }
-                        output[tags[j].Item2] += getOpenTag(nowTag);
-                        output[output.Count - 1] += getCloseTag(nowTag);
-                        tags.RemoveAt(j);
+                        if (nowTag == tag.p)
+                        {
+                            output[tags[j].Item2] += getOpenTag(nowTag);
+                            output[output.Count - 1] += getCloseTag(nowTag)+getOpenTag(nowTag);
+                            tags.RemoveAt(j);
+                            tags.Add(new Tuple<tag, int>(tag.p, output.Count-1));
+                        }
+                        else
+                        {
+                            output[tags[j].Item2] += getOpenTag(nowTag);
+                            output[output.Count - 1] += getCloseTag(nowTag);
+                            tags.RemoveAt(j);    
+                        }
+                        
                     }
                     else
                     {
@@ -58,10 +69,13 @@ namespace markdown_parser
                 }
             }
 
+            if (tags.Any(x => x.Item1 == tag.p))
+                text += getCloseTag(tag.p);
             if (!string.IsNullOrEmpty(text))
                 output.Add(text);
             for (var j = 0; j < tags.Count(); j++)
                 output[tags[j].Item2] += getMarkdownChar(tags[j].Item1);
+               
 
             string ans = "";
             for (var i = 0; i < output.Count(); i++)
@@ -98,10 +112,13 @@ namespace markdown_parser
             if (input[i] == '\n')
             {
                 var j = i+1;
-                while (char.IsWhiteSpace(input[j++])) { }
+                while (input[j++] == ' ') { }
 
-                if(input[j] == '\n')
+                if (input[j - 1] == '\n')
+                {
+                    i = j-1;
                     return tag.p;
+                }
             }
 
             return tag.notag;
