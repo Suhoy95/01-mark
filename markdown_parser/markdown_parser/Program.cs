@@ -10,6 +10,8 @@ namespace markdown_parser
     {
         static void Main(string[] args)
         {
+            Parser a = new Parser();
+            a.Parse("_Hello_");
         }
     }
 }

@@ -13,39 +13,42 @@ namespace markdown_parser
     {
         static Parser a = new Parser();
         [Test]
-        public static void return_simple_input_string()
+        public static void return_simple_input_string_in_paragraph()
         {
-            Assert.AreEqual("Hello", a.Parse("Hello"));
+            Assert.AreEqual("<p>Hello</p>", a.Parse("Hello"));
         }
 
         [Test]
         public static void replace_underline_tag()
         {
-            Assert.AreEqual("<em>Hello</em>", a.Parse("_Hello_"));
+            var ans = a.Parse("_Hello_");
+            Assert.AreEqual("<p><em>Hello</em></p>", ans);
         }
 
         [Test]
         public static void noreplace_one_underline()
         {
-            Assert.AreEqual("_Hello", a.Parse("_Hello"));
+            Assert.AreEqual("<p>_Hello</p>", a.Parse("_Hello"));
         }
 
         [Test]
         public static void replace_twice_underline()
         {   
-            Assert.AreEqual("<strong>Hello</strong>", a.Parse("__Hello__"));
+            Assert.AreEqual("<p><strong>Hello</strong></p>", a.Parse("__Hello__"));
         }
 
         [Test]
         public static void replace_twice_in_ones_underline()
         {
-            Assert.AreEqual("<em> <strong>Hello</strong> </em>", a.Parse("_ __Hello__ _"));
+            var ans = a.Parse("_ __Hello__ _");
+            Assert.AreEqual("<p><em> <strong>Hello</strong> </em></p>", ans);
         }
         
         [Test]
         public static void replace_ones_in_twice_underline()
         {
-            Assert.AreEqual("<strong> <em>Hello</em> </strong>", a.Parse("__ _Hello_ __"));
+            var ans = a.Parse("__ _Hello_ __");
+            Assert.AreEqual("<p><strong> <em>Hello</em> </strong></p>", ans);
         }
 
         [Test]
@@ -63,51 +66,52 @@ namespace markdown_parser
         [Test]
         public static void ignore_underline_in_words()
         {
-            Assert.AreEqual("Подчерки_внутри_текста__и__цифр_12_3", a.Parse("Подчерки_внутри_текста__и__цифр_12_3"));
+            Assert.AreEqual("<p>Подчерки_внутри_текста__и__цифр_12_3</p>", a.Parse("Подчерки_внутри_текста__и__цифр_12_3"));
         }
 
         [Test]
         public static void ignore_backslash_character()
         {
-            Assert.AreEqual("_Hello_", a.Parse("\\_Hello\\_"));
+            var ans = a.Parse("\\_Hello\\_");
+            Assert.AreEqual("<p>_Hello_</p>", ans);
         }
         //new test
         [Test]
         public static void ignore_single_underline_and_escaped_underline()
         {
             var actual = a.Parse("_Hello\\_");
-            Assert.AreEqual("_Hello_", actual);
+            Assert.AreEqual("<p>_Hello_</p>", actual);
         }
 
         [Test]
         public static void ignore_double_underline_and_escaped_double_underline()
         {
             var actual = a.Parse("__Hello\\__");
-            Assert.AreEqual("__Hello__", actual);
+            Assert.AreEqual("<p>__Hello__</p>", actual);
         }
 
         [Test]
         public static void replace_double_underline_in_nesting()
         {
-            Assert.AreEqual("<strong> _Hello</strong> _", a.Parse("__ _Hello__ _"));
+            Assert.AreEqual("<p><strong> _Hello</strong> _</p>", a.Parse("__ _Hello__ _"));
         }
 
         [Test]
         public static void replace_single_underline_in_nesting()
         {
-            Assert.AreEqual("<em> _Hello</em> _", a.Parse("_ __Hello_ __"));
+            Assert.AreEqual("<p><em> __Hello</em> __</p>", a.Parse("_ __Hello_ __"));
         }
 
         [Test]
         public static void replace_code_in_nesting()
         {
-            Assert.AreEqual("<em> `Hello</em> `", a.Parse("_ `Hello_ `"));
+            Assert.AreEqual("<p>_ </p><code>Hello_ </code>", a.Parse("_ `Hello_ `"));
         }
 
         [Test]
         public static void escape_html()
         {
-            Assert.AreEqual("&lt;em&gt;Hello&lt;/em&gt;", a.Parse("<em>Hello</em>"));
+            Assert.AreEqual("<p>&lt;em&gt;Hello&lt;/em&gt;</p>", a.Parse("<em>Hello</em>"));
         }
     }
 }
