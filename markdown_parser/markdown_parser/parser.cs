@@ -30,10 +30,10 @@ namespace markdown_parser
 
         private string TryGetCodeStr(string input, ref int i)
         {
-            if (input[i] == '`')
+            if (NoSlashedChar(input, i, '`'))
             {
                 for(int j = i+1; j < input.Length; j++)
-                    if (input[j] == '`')
+                    if (NoSlashedChar(input, j, '`'))
                     {
                         string codeStr = input.Substring(i + 1, j - i - 1);
                         i = j+1;
@@ -49,7 +49,7 @@ namespace markdown_parser
             string output = "";
             for (int i = 0; i < input.Length; i++)
             {
-                if (input[i] != '\n')
+                if (input[i] != '\n') 
                 {
                     output += input[i];
                 }
@@ -58,7 +58,7 @@ namespace markdown_parser
                     int j = i + 1;
                     while (char.IsWhiteSpace(input[j])) { j++;}
 
-                    if (input[j] == '\n')
+                    if (NoSlashedChar(input, j, '\n'))
                         return "<p>" + GenerateBoldTags(output) + "</p>" + GenerateParagraph(GetTailString(input, j + 1));
                 }
             }
@@ -74,7 +74,7 @@ namespace markdown_parser
             string output = "";
             for (int i = 0; i < input.Length; i++)
             {
-                if (input[i] == '\\')
+                if (input[i] == '\\' && i+1 <input.Length)
                 {
                     output += input[++i];
                     continue;
@@ -96,22 +96,14 @@ namespace markdown_parser
 
             return EscapeHTML(output);
         }
-
-        private string GetTailString(string input, int i)
-        {
-            if (i >= input.Length)
-                return "";
-
-            return input.Substring(i);
-        }
-
+        
         private string tryGetEmTag(string input, ref int i)
         {
-            if ( WhiteSpaceOrNothing(input, i-1) && input[i] == '_')
+            if ( WhiteSpaceOrNothing(input, i-1) && NoSlashedChar(input, i, '_'))
             {
                 for (var j = i + 1; j < input.Length; j++)
                 {
-                    if (input[j - 1] != '_' && input[j] == '_' && WhiteSpaceOrNothing(input, j+1))
+                    if (input[j - 1] != '_' && NoSlashedChar(input, j, '_') && WhiteSpaceOrNothing(input, j+1))
                     {
                         string emContent = input.Substring(i + 1, j-i-1);
                         i = j + 1;
@@ -125,14 +117,14 @@ namespace markdown_parser
 
         private string tryGetStrongTag(string input, ref int i)
         {
-            if ( WhiteSpaceOrNothing(input, i-1) && input[i] == '_' && input[i + 1] == '_')
+            if ( WhiteSpaceOrNothing(input, i-1) && NoSlashedChar(input, i, '_') && NoSlashedChar(input, i + 1, '_'))
             {
                 for (var j = i + 2; j < input.Length; j++)
                 {
-                    if (input[j - 1] == '_' && input[j] == '_' && WhiteSpaceOrNothing(input, j+1))
+                    if (NoSlashedChar(input, j - 1, '_') && NoSlashedChar(input, j, '_') && WhiteSpaceOrNothing(input, j+1))
                     {
                         string strongContent = input.Substring(i + 2, j - i - 3);
-                        i = j + 2;
+                        i = j + 1;
                         return "<strong>"+GenerateBoldTags(strongContent) + "</strong>";
                     }
                 }
@@ -167,8 +159,25 @@ namespace markdown_parser
                         break;
                 }
             }
-
             return output;
+        }
+
+        private bool NoSlashedChar(string input, int i, char x)
+        {
+            if (i == 0)
+                return input[i] == x;
+            if (i >= input.Length)
+                return false;
+
+            return input[i - 1] != '\\' && input[i] == x;
+        }
+
+        private string GetTailString(string input, int i)
+        {
+            if (i >= input.Length)
+                return "";
+
+            return input.Substring(i);
         }
     }
 }

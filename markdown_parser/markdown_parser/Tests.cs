@@ -93,7 +93,8 @@ namespace markdown_parser
         [Test]
         public static void replace_double_underline_in_nesting()
         {
-            Assert.AreEqual("<p><strong> _Hello</strong> _</p>", a.Parse("__ _Hello__ _"));
+            var ans = a.Parse("__ _Hello__ _");
+            Assert.AreEqual("<p><strong> _Hello</strong> _</p>", ans);
         }
 
         [Test]
@@ -112,6 +113,11 @@ namespace markdown_parser
         public static void escape_html()
         {
             Assert.AreEqual("<p>&lt;em&gt;Hello&lt;/em&gt;</p>", a.Parse("<em>Hello</em>"));
+        }
+        [Test]
+        public static void ignore_backslash_backticks()
+        {
+            Assert.AreEqual("<p>`Hello`</p>", a.Parse("`Hello\\`"));
         }
     }
 }
