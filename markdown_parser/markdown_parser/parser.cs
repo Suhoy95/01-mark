@@ -28,56 +28,25 @@ namespace markdown_parser
           
             return GenerateParagraph(input);
         }
-
-        private string TryGetCodeStr(string input, ref int i)
-        {
-            if (NoSlashedChar(input, i, '`'))
-            {
-                for(int j = i+1; j < input.Length; j++)
-                    if (NoSlashedChar(input, j, '`'))
-                    {
-                        string codeStr = input.Substring(i + 1, j - i - 1);
-                        i = j+1;
-                        return "<code>"+EscapeHTML(codeStr)+"</code>";
-                    }
-            }
-
-            return "";
-        }
-
-        private bool NoSlashedChar(string input, int i, char x)
-        {
-            if (i == 0)
-                return input[i] == x;
-            if (i >= input.Length)
-                return false;
-
-            return input[i - 1] != '\\' && input[i] == x;
-        }
-
+        
         private string GenerateParagraph(string input)
         {
-            string output = "";
-            for (int i = 0; i < input.Length; i++)
-            {
-                if (input[i] != '\n') 
-                {
-                    output += input[i];
-                }
-                else
-                {
-                    int j = i + 1;
-                    while (char.IsWhiteSpace(input[j])) { j++;}
+            int indexNextLine = IndexOfNoSlashedChar(input, 0, '\n');
 
-                    if (NoSlashedChar(input, j, '\n'))
-                        return "<p>" + GenerateBoldTags(output) + "</p>" + GenerateParagraph(GetTailString(input, j + 1));
-                }
+            if (indexNextLine >= 0)
+            {
+                int j = indexNextLine + 1;
+                while (char.IsWhiteSpace(input[j])) { j++; }
+
+                if (NoSlashedChar(input, j, '\n'))
+                    return GenerateParagraph(input.Substring(0, indexNextLine)) + 
+                           GenerateParagraph(GetTailString(input, j + 1));
             }
 
-            if(!string.IsNullOrEmpty(output))
-                return "<p>" + GenerateBoldTags(output) + "</p>";
+            if (string.IsNullOrEmpty(input))
+                return "";
 
-            return "";
+            return "<p>" + GenerateBoldTags(input) + "</p>";
         }
 
         private string GenerateBoldTags(string input)
@@ -195,6 +164,16 @@ namespace markdown_parser
                 return "";
 
             return input.Substring(i);
+        }
+
+        private bool NoSlashedChar(string input, int i, char x)
+        {
+            if (i == 0)
+                return input[i] == x;
+            if (i >= input.Length)
+                return false;
+
+            return input[i - 1] != '\\' && input[i] == x;
         }
     }
 }
