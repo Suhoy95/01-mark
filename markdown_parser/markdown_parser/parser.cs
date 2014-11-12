@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Mono.Web;
 
 namespace markdown_parser
 { 
@@ -103,23 +105,12 @@ namespace markdown_parser
             string output = "";
             for (int i = 0; i < input.Length; i++)
             {
-                switch (input[i])
-                {
-                    case'<':
-                        output += "&lt;";
-                        break;
-                    case '>':
-                        output += "&gt;";
-                        break;
-                    case '\\':
-                        output += input[++i];
-                        break;
-                    default:
-                        output += input[i];
-                        break;
-                }
+                if (input[i] == '\\') i++;
+
+                output += input[i];
             }
-            return output;
+
+            return HttpUtility.HtmlEncode(output);
         }
 
         private int IndexOfNoSlashedChar(string input, int startIndex, char с)
