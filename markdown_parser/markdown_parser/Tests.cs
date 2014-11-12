@@ -54,7 +54,8 @@ namespace markdown_parser
         [Test]
         public static void replace_backticks()
         {
-            Assert.AreEqual("<code>Hello</code>", a.Parse("`Hello`"));
+            string result = a.Parse("`Hello`");
+            Assert.AreEqual("<code>Hello</code>", result);
         }
 
         [Test]

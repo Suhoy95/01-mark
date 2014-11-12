@@ -13,19 +13,20 @@ namespace markdown_parser
 
         public string Parse(string input)
         {
-            string output = "";
-         
-            for (var i = 0; i < input.Length; i++)
-            {
-               string codeStr = TryGetCodeStr(input, ref i);
 
-                if (string.IsNullOrEmpty(codeStr))
-                    output += input[i];
-                else
-                    return GenerateParagraph(output) + codeStr + Parse(GetTailString(input, i));
+            int indexBacktick = IndexOfNoSlashedChar(input, 0, '`');
+
+            if (indexBacktick >= 0)
+            {
+                int closeBacktick = IndexOfNoSlashedChar(input, indexBacktick + 1, '`');
+                if (closeBacktick >= 0)
+                    return GenerateParagraph(input.Substring(0, indexBacktick)) +
+                           "<code>" + input.Substring(indexBacktick + 1, closeBacktick-indexBacktick-1) + "</code>" +
+                           Parse(GetTailString(input, closeBacktick + 1));
             }
+            
           
-            return GenerateParagraph(output);
+            return GenerateParagraph(input);
         }
 
         private string TryGetCodeStr(string input, ref int i)
@@ -42,6 +43,16 @@ namespace markdown_parser
             }
 
             return "";
+        }
+
+        private bool NoSlashedChar(string input, int i, char x)
+        {
+            if (i == 0)
+                return input[i] == x;
+            if (i >= input.Length)
+                return false;
+
+            return input[i - 1] != '\\' && input[i] == x;
         }
 
         private string GenerateParagraph(string input)
@@ -79,13 +90,13 @@ namespace markdown_parser
                     output += input[++i];
                     continue;
                 }
-                string strInBoldTag;
+                string strInBoldTag = "";
 
-                strInBoldTag = tryGetStrongTag(input, ref i);
+                strInBoldTag = TryGetStrongTag(input, ref i);
                 if (!string.IsNullOrEmpty(strInBoldTag))
                     return EscapeHTML(output) + strInBoldTag + GenerateBoldTags(GetTailString(input,i));
 
-                strInBoldTag = tryGetEmTag(input, ref i);
+                strInBoldTag = TryGetEmTag(input, ref i);
                 if (!string.IsNullOrEmpty(strInBoldTag))
                 {
                     return EscapeHTML(output) + strInBoldTag + GenerateBoldTags(GetTailString(input, i));
@@ -97,7 +108,7 @@ namespace markdown_parser
             return EscapeHTML(output);
         }
         
-        private string tryGetEmTag(string input, ref int i)
+        private string TryGetEmTag(string input, ref int i)
         {
             if ( WhiteSpaceOrNothing(input, i-1) && NoSlashedChar(input, i, '_'))
             {
@@ -115,7 +126,7 @@ namespace markdown_parser
             return "";
         }
 
-        private string tryGetStrongTag(string input, ref int i)
+        private string TryGetStrongTag(string input, ref int i)
         {
             if ( WhiteSpaceOrNothing(input, i-1) && NoSlashedChar(input, i, '_') && NoSlashedChar(input, i + 1, '_'))
             {
@@ -135,7 +146,7 @@ namespace markdown_parser
 
         private bool WhiteSpaceOrNothing(string input, int i)
         {
-            if (i < 0 || i >=input.Length)
+            if (i < 0 || i >= input.Length)
                 return true;
 
             return char.IsWhiteSpace(input[i]);
@@ -162,14 +173,20 @@ namespace markdown_parser
             return output;
         }
 
-        private bool NoSlashedChar(string input, int i, char x)
+        private int IndexOfNoSlashedChar(string input, int startIndex, char x)
         {
-            if (i == 0)
-                return input[i] == x;
-            if (i >= input.Length)
-                return false;
 
-            return input[i - 1] != '\\' && input[i] == x;
+            if (startIndex >= input.Length || startIndex < 0)
+                return -1;
+            int index = input.IndexOf(x, startIndex);
+            while (index >= 0)
+            {
+                if (NoSlashedChar(input, index, x))
+                    return index;
+                index = input.IndexOf(x, index + 1);
+            }
+
+            return -1;
         }
 
         private string GetTailString(string input, int i)
