@@ -51,66 +51,38 @@ namespace markdown_parser
 
         private string GenerateBoldTags(string input)
         {
-            string output = "";
-            for (int i = 0; i < input.Length; i++)
+            int indexUnderline = IndexOfNoSlashedChar(input, 0, '_');
+            if (indexUnderline >= 0 && WhiteSpaceOrNothing(input, indexUnderline-1))
             {
-                if (input[i] == '\\' && i+1 <input.Length)
+                if (NoSlashedChar(input, indexUnderline + 1, '_'))
                 {
-                    output += input[++i];
-                    continue;
-                }
-                string strInBoldTag = "";
-
-                strInBoldTag = TryGetStrongTag(input, ref i);
-                if (!string.IsNullOrEmpty(strInBoldTag))
-                    return EscapeHTML(output) + strInBoldTag + GenerateBoldTags(GetTailString(input,i));
-
-                strInBoldTag = TryGetEmTag(input, ref i);
-                if (!string.IsNullOrEmpty(strInBoldTag))
-                {
-                    return EscapeHTML(output) + strInBoldTag + GenerateBoldTags(GetTailString(input, i));
-                }
-
-                output += input[i];
-            }
-
-            return EscapeHTML(output);
-        }
-        
-        private string TryGetEmTag(string input, ref int i)
-        {
-            if ( WhiteSpaceOrNothing(input, i-1) && NoSlashedChar(input, i, '_'))
-            {
-                for (var j = i + 1; j < input.Length; j++)
-                {
-                    if (input[j - 1] != '_' && NoSlashedChar(input, j, '_') && WhiteSpaceOrNothing(input, j+1))
+                    int closeUnderline = IndexOfNoSlashedChar(input, indexUnderline + 1, '_');
+                    while (closeUnderline >= 0)
                     {
-                        string emContent = input.Substring(i + 1, j-i-1);
-                        i = j + 1;
-                        return "<em>" + GenerateBoldTags(emContent)+"</em>";
+                        if (NoSlashedChar(input, closeUnderline + 1, '_') &&
+                            WhiteSpaceOrNothing(input, closeUnderline + 2))
+                            return EscapeHTML(input.Substring(0, indexUnderline))+
+                                "<strong>"+GenerateBoldTags(input.Substring(indexUnderline+2, closeUnderline-indexUnderline-2))+"</strong>"+
+                                GenerateBoldTags(GetTailString(input, closeUnderline+2));
+                        closeUnderline = IndexOfNoSlashedChar(input, closeUnderline + 1, '_');
+                    }
+
+                }
+                else
+                {
+                    int closeUnderline = IndexOfNoSlashedChar(input, indexUnderline + 1, '_');
+                    while (closeUnderline >= 0)
+                    {
+                        if (input[closeUnderline-1] != '_' && WhiteSpaceOrNothing(input, closeUnderline + 1))
+                            return EscapeHTML(input.Substring(0, indexUnderline)) +
+                                "<em>" + GenerateBoldTags(input.Substring(indexUnderline + 1, closeUnderline - indexUnderline - 1)) + "</em>" +
+                                GenerateBoldTags(GetTailString(input, closeUnderline + 1));
+                        closeUnderline = IndexOfNoSlashedChar(input, closeUnderline + 1, '_');
                     }
                 }
             }
 
-            return "";
-        }
-
-        private string TryGetStrongTag(string input, ref int i)
-        {
-            if ( WhiteSpaceOrNothing(input, i-1) && NoSlashedChar(input, i, '_') && NoSlashedChar(input, i + 1, '_'))
-            {
-                for (var j = i + 2; j < input.Length; j++)
-                {
-                    if (NoSlashedChar(input, j - 1, '_') && NoSlashedChar(input, j, '_') && WhiteSpaceOrNothing(input, j+1))
-                    {
-                        string strongContent = input.Substring(i + 2, j - i - 3);
-                        i = j + 1;
-                        return "<strong>"+GenerateBoldTags(strongContent) + "</strong>";
-                    }
-                }
-            }
-
-            return "";
+            return EscapeHTML(input);
         }
 
         private bool WhiteSpaceOrNothing(string input, int i)
@@ -133,6 +105,8 @@ namespace markdown_parser
                         break;
                     case '>':
                         output += "&gt;";
+                        break;
+                    case '\\':
                         break;
                     default:
                         output += input[i];
