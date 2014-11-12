@@ -14,22 +14,23 @@ namespace markdown_parser
         public string Parse(string input)
         {
 
-            int indexBacktick = IndexOfNoSlashedChar(input, 0, '`');
+            int startIndex = IndexOfNoSlashedChar(input, 0, '`');
 
-            if (indexBacktick >= 0)
+            if (startIndex >= 0)
             {
-                int closeBacktick = IndexOfNoSlashedChar(input, indexBacktick + 1, '`');
-                if (closeBacktick >= 0)
-                    return GenerateParagraph(input.Substring(0, indexBacktick)) +
-                           "<code>" + input.Substring(indexBacktick + 1, closeBacktick-indexBacktick-1) + "</code>" +
-                           Parse(GetTailString(input, closeBacktick + 1));
+                int endIndex = IndexOfNoSlashedChar(input, startIndex + 1, '`');
+                if (endIndex >= 0)
+                    return  ParseParagraph(input.Substring(0, startIndex)) +
+                            "<code>" + 
+                                input.Substring(startIndex + 1, endIndex-startIndex-1) + 
+                            "</code>" +
+                            Parse(TailString(input, endIndex + 1));
             }
             
-          
-            return GenerateParagraph(input);
+            return ParseParagraph(input);
         }
         
-        private string GenerateParagraph(string input)
+        private string ParseParagraph(string input)
         {
             int indexNextLine = IndexOfNoSlashedChar(input, 0, '\n');
 
@@ -38,32 +39,36 @@ namespace markdown_parser
                 int j = indexNextLine + 1;
                 while (char.IsWhiteSpace(input[j])) { j++; }
 
-                if (NoSlashedChar(input, j, '\n'))
-                    return GenerateParagraph(input.Substring(0, indexNextLine)) + 
-                           GenerateParagraph(GetTailString(input, j + 1));
+                if (IsNoSlashed(input, j, '\n'))
+                    return "<p>"+
+                                ParseBoldTag(input.Substring(0, indexNextLine)) +
+                           "</p>"+
+                           ParseParagraph(TailString(input, j + 1));
             }
 
             if (string.IsNullOrEmpty(input))
                 return "";
 
-            return "<p>" + GenerateBoldTags(input) + "</p>";
+            return "<p>" + ParseBoldTag(input) + "</p>";
         }
 
-        private string GenerateBoldTags(string input)
+        private string ParseBoldTag(string input)
         {
             int indexUnderline = IndexOfNoSlashedChar(input, 0, '_');
             if (indexUnderline >= 0 && WhiteSpaceOrNothing(input, indexUnderline-1))
             {
-                if (NoSlashedChar(input, indexUnderline + 1, '_'))
+                if (IsNoSlashed(input, indexUnderline + 1, '_'))
                 {
                     int closeUnderline = IndexOfNoSlashedChar(input, indexUnderline + 1, '_');
                     while (closeUnderline >= 0)
                     {
-                        if (NoSlashedChar(input, closeUnderline + 1, '_') &&
-                            WhiteSpaceOrNothing(input, closeUnderline + 2))
-                            return EscapeHTML(input.Substring(0, indexUnderline))+
-                                "<strong>"+GenerateBoldTags(input.Substring(indexUnderline+2, closeUnderline-indexUnderline-2))+"</strong>"+
-                                GenerateBoldTags(GetTailString(input, closeUnderline+2));
+                        if (IsNoSlashed(input, closeUnderline + 1, '_') && WhiteSpaceOrNothing(input, closeUnderline + 2))
+                            return EscapeHTML(input.Substring(0, indexUnderline)) +
+                                "<strong>"+
+                                    ParseBoldTag(input.Substring(indexUnderline+2, closeUnderline-indexUnderline-2)) + 
+                                "</strong>"+
+                                ParseBoldTag(TailString(input, closeUnderline+2));
+                        
                         closeUnderline = IndexOfNoSlashedChar(input, closeUnderline + 1, '_');
                     }
 
@@ -75,8 +80,11 @@ namespace markdown_parser
                     {
                         if (input[closeUnderline-1] != '_' && WhiteSpaceOrNothing(input, closeUnderline + 1))
                             return EscapeHTML(input.Substring(0, indexUnderline)) +
-                                "<em>" + GenerateBoldTags(input.Substring(indexUnderline + 1, closeUnderline - indexUnderline - 1)) + "</em>" +
-                                GenerateBoldTags(GetTailString(input, closeUnderline + 1));
+                                "<em>" + 
+                                    ParseBoldTag(input.Substring(indexUnderline + 1, closeUnderline - indexUnderline - 1)) + 
+                                "</em>" +
+                                ParseBoldTag(TailString(input, closeUnderline + 1));
+                       
                         closeUnderline = IndexOfNoSlashedChar(input, closeUnderline + 1, '_');
                     }
                 }
@@ -87,10 +95,7 @@ namespace markdown_parser
 
         private bool WhiteSpaceOrNothing(string input, int i)
         {
-            if (i < 0 || i >= input.Length)
-                return true;
-
-            return char.IsWhiteSpace(input[i]);
+            return i < 0 || i >= input.Length || char.IsWhiteSpace(input[i]);
         }
 
         private string EscapeHTML(string input)
@@ -107,6 +112,7 @@ namespace markdown_parser
                         output += "&gt;";
                         break;
                     case '\\':
+                        output += input[++i];
                         break;
                     default:
                         output += input[i];
@@ -116,23 +122,17 @@ namespace markdown_parser
             return output;
         }
 
-        private int IndexOfNoSlashedChar(string input, int startIndex, char x)
+        private int IndexOfNoSlashedChar(string input, int startIndex, char с)
         {
-
-            if (startIndex >= input.Length || startIndex < 0)
-                return -1;
-            int index = input.IndexOf(x, startIndex);
-            while (index >= 0)
-            {
-                if (NoSlashedChar(input, index, x))
-                    return index;
-                index = input.IndexOf(x, index + 1);
-            }
+            //Ищет не экранированный символ, и возвращает его позицию
+            for(int i = startIndex; (i = input.IndexOf(с, i)) >= 0 && i < input.Length; i++)
+                if (IsNoSlashed(input, i, с))
+                    return i;
 
             return -1;
         }
 
-        private string GetTailString(string input, int i)
+        private string TailString(string input, int i)
         {
             if (i >= input.Length)
                 return "";
@@ -140,14 +140,13 @@ namespace markdown_parser
             return input.Substring(i);
         }
 
-        private bool NoSlashedChar(string input, int i, char x)
+        private bool IsNoSlashed(string input, int i, char x)
         {
-            if (i == 0)
-                return input[i] == x;
             if (i >= input.Length)
                 return false;
-
-            return input[i - 1] != '\\' && input[i] == x;
+            
+            return i == 0 ? input[i] == x : 
+                            input[i - 1] != '\\' && input[i] == x;
         }
     }
 }
