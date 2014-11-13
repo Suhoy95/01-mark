@@ -21,8 +21,7 @@ namespace markdown_parser
         [Test]
         public static void replace_underline_tag()
         {
-            var ans = a.Parse("_Hello_");
-            Assert.AreEqual("<p><em>Hello</em></p>", ans);
+            Assert.AreEqual("<p><em>Hello</em></p>", a.Parse("_Hello_"));
         }
 
         [Test]
@@ -40,22 +39,19 @@ namespace markdown_parser
         [Test]
         public static void replace_twice_in_ones_underline()
         {
-            var ans = a.Parse("_ __Hello__ _");
-            Assert.AreEqual("<p><em> <strong>Hello</strong> </em></p>", ans);
+            Assert.AreEqual("<p><em> <strong>Hello</strong> </em></p>", a.Parse("_ __Hello__ _"));
         }
         
         [Test]
         public static void replace_ones_in_twice_underline()
         {
-            var ans = a.Parse("__ _Hello_ __");
-            Assert.AreEqual("<p><strong> <em>Hello</em> </strong></p>", ans);
+            Assert.AreEqual("<p><strong> <em>Hello</em> </strong></p>", a.Parse("__ _Hello_ __"));
         }
 
         [Test]
         public static void replace_backticks()
         {
-            string result = a.Parse("`Hello`");
-            Assert.AreEqual("<code>Hello</code>", result);
+            Assert.AreEqual("<code>Hello</code>", a.Parse("`Hello`"));
         }
 
         [Test]
@@ -73,29 +69,25 @@ namespace markdown_parser
         [Test]
         public static void ignore_backslash_character()
         {
-            var ans = a.Parse("\\_Hello\\_");
-            Assert.AreEqual("<p>_Hello_</p>", ans);
+            Assert.AreEqual("<p>_Hello_</p>", a.Parse("\\_Hello\\_"));
         }
         //new test
         [Test]
         public static void ignore_single_underline_and_escaped_underline()
         {
-            var actual = a.Parse("_Hello\\_");
-            Assert.AreEqual("<p>_Hello_</p>", actual);
+            Assert.AreEqual("<p>_Hello_</p>", a.Parse("_Hello\\_"));
         }
 
         [Test]
         public static void ignore_double_underline_and_escaped_double_underline()
         {
-            var actual = a.Parse("__Hello\\__");
-            Assert.AreEqual("<p>__Hello__</p>", actual);
+            Assert.AreEqual("<p>__Hello__</p>", a.Parse("__Hello\\__"));
         }
 
         [Test]
         public static void replace_double_underline_in_nesting()
         {
-            var ans = a.Parse("__ _Hello__ _");
-            Assert.AreEqual("<p><strong> _Hello</strong> _</p>", ans);
+            Assert.AreEqual("<p><strong> _Hello</strong> _</p>", a.Parse("__ _Hello__ _"));
         }
 
         [Test]
@@ -120,5 +112,12 @@ namespace markdown_parser
         {
             Assert.AreEqual("<p>`Hello`</p>", a.Parse("`Hello\\`"));
         }
+
+        [Test]
+        public static void slashed_slash()
+        {
+            Assert.AreEqual("<p>\\Hello</p>", a.Parse("\\\\Hello"));
+        }
+
     }
 }
